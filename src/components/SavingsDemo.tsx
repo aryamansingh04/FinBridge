@@ -29,24 +29,24 @@ const goals = [
 
 export const SavingsDemo = () => {
   return (
-    <section className="py-20">
+    <section className="py-12 md:py-16 lg:py-20">
       <div className="container mx-auto px-4">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <h2 className="text-primary">Track Your Dreams</h2>
-            <p className="text-lg text-muted-foreground">
+        <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
+          <div className="space-y-4 md:space-y-6 text-center lg:text-left order-2 lg:order-1">
+            <h2 className="text-primary text-2xl md:text-3xl lg:text-4xl">Track Your Dreams</h2>
+            <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
               Set goals that matter to you and watch your savings grow. 
               Visual progress tracking keeps you motivated every step of the way.
             </p>
             
-            <div className="space-y-4 pt-4">
+            <div className="space-y-3 md:space-y-4 pt-2 md:pt-4">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0 mt-1">
                   <TrendingUp className="w-4 h-4 text-success" />
                 </div>
-                <div>
-                  <p className="font-semibold mb-1">Smart Savings Tips</p>
-                  <p className="text-sm text-muted-foreground">
+                <div className="text-left">
+                  <p className="font-semibold mb-1 text-sm md:text-base">Smart Savings Tips</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     Get AI-powered suggestions on how to save more based on your spending patterns
                   </p>
                 </div>
@@ -54,44 +54,46 @@ export const SavingsDemo = () => {
               
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
-                  <span className="text-lg">🎯</span>
+                  <span className="text-lg md:text-xl">🎯</span>
                 </div>
-                <div>
-                  <p className="font-semibold mb-1">Milestone Celebrations</p>
-                  <p className="text-sm text-muted-foreground">
+                <div className="text-left">
+                  <p className="font-semibold mb-1 text-sm md:text-base">Milestone Celebrations</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     Celebrate each milestone with rewards and encouragement
                   </p>
                 </div>
               </div>
             </div>
             
-            <Button size="lg" variant="success" className="mt-6">
-              Start Saving Today
-            </Button>
+            <div className="flex justify-center lg:justify-start">
+              <Button size="lg" variant="success" className="mt-4 md:mt-6 w-full sm:w-auto">
+                Start Saving Today
+              </Button>
+            </div>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4 order-1 lg:order-2">
             {goals.map((goal) => {
               const progress = (goal.current / goal.target) * 100;
               return (
                 <Card key={goal.title} className="shadow-md">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{goal.icon}</span>
-                        <div>
-                          <CardTitle className="text-lg">{goal.title}</CardTitle>
-                          <CardDescription>
+                  <CardHeader className="pb-2 md:pb-3 p-4 md:p-6">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                        <span className="text-xl md:text-2xl flex-shrink-0">{goal.icon}</span>
+                        <div className="min-w-0">
+                          <CardTitle className="text-base md:text-lg truncate">{goal.title}</CardTitle>
+                          <CardDescription className="text-xs md:text-sm">
                             ₹{goal.current.toLocaleString('en-IN')} of ₹{goal.target.toLocaleString('en-IN')}
                           </CardDescription>
                         </div>
                       </div>
-                      <span className="text-sm font-semibold text-muted-foreground">
+                      <span className="text-xs md:text-sm font-semibold text-muted-foreground flex-shrink-0">
                         {Math.round(progress)}%
                       </span>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-4 md:p-6 pt-0">
                     <Progress value={progress} variant={goal.color} className="h-2" />
                   </CardContent>
                 </Card>

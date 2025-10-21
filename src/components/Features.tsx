@@ -42,16 +42,16 @@ const features = [
 
 export const Features = () => {
   return (
-    <section className="py-20 bg-secondary/30">
+    <section className="py-12 md:py-16 lg:py-20 bg-secondary/30">
       <div className="container mx-auto px-4">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="mb-4">Everything You Need to Succeed</h2>
-          <p className="text-lg text-muted-foreground">
+        <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
+          <h2 className="mb-3 md:mb-4 text-2xl md:text-3xl lg:text-4xl">Everything You Need to Succeed</h2>
+          <p className="text-base md:text-lg text-muted-foreground">
             Simple, powerful tools designed for your financial journey
           </p>
         </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {features.map((feature) => {
             const Icon = feature.icon;
             return (
@@ -59,12 +59,12 @@ export const Features = () => {
                 key={feature.title} 
                 className="bg-card hover:shadow-md transition-shadow border-2"
               >
-                <CardHeader>
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br from-${feature.color}/20 to-${feature.color}/10 flex items-center justify-center mb-4`}>
-                    <Icon className={`w-6 h-6 ${feature.color}`} />
+                <CardHeader className="p-4 md:p-6">
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg bg-gradient-to-br from-${feature.color}/20 to-${feature.color}/10 flex items-center justify-center mb-3 md:mb-4`}>
+                    <Icon className={`w-5 h-5 md:w-6 md:h-6 ${feature.color}`} />
                   </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  <CardDescription className="text-base">
+                  <CardTitle className="text-lg md:text-xl">{feature.title}</CardTitle>
+                  <CardDescription className="text-sm md:text-base">
                     {feature.description}
                   </CardDescription>
                 </CardHeader>
