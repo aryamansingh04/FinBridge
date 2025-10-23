@@ -1,0 +1,1063 @@
+import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { DashboardHeader } from "@/components/DashboardHeader";
+import { useWallet } from "@/contexts/WalletContext";
+import { useNotificationHelpers } from "@/contexts/NotificationContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Wallet, 
+  Plus, 
+  Minus, 
+  ArrowUpDown, 
+  CreditCard, 
+  Target, 
+  TrendingUp, 
+  Shield, 
+  History, 
+  Download, 
+  HelpCircle,
+  CheckCircle,
+  AlertCircle,
+  DollarSign,
+  PiggyBank,
+  Calendar,
+  Settings
+} from "lucide-react";
+
+interface UserProfile {
+  name: string;
+  occupation: string;
+  monthlySalary: string;
+  initials: string;
+  email: string;
+  isSignedIn: boolean;
+  signInMethod: string;
+}
+
+interface Transaction {
+  id: string;
+  type: 'deposit' | 'withdraw' | 'transfer';
+  amount: number;
+  description: string;
+  date: string;
+  status: 'completed' | 'pending' | 'failed';
+}
+
+interface SavingsGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  savedAmount: number;
+  monthlyContribution: number;
+  deadline: string;
+}
+
+interface BudgetCategory {
+  id: string;
+  name: string;
+  budgetAmount: number;
+  spentAmount: number;
+  color: string;
+}
+
+export const DigitalWallet = () => {
+  const { t } = useTranslation();
+  const { walletData, updateBalance, addTransaction } = useWallet();
+  const { notifyTransaction, notifyWallet } = useNotificationHelpers();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  
+  const [depositAmount, setDepositAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [isDepositOpen, setIsDepositOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isBudgetOpen, setIsBudgetOpen] = useState(false);
+  
+  // Quick Actions Modal States
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [isPayBillsOpen, setIsPayBillsOpen] = useState(false);
+  const [isSavingsManagementOpen, setIsSavingsManagementOpen] = useState(false);
+  const [isBudgetTrackerOpen, setIsBudgetTrackerOpen] = useState(false);
+  
+  // Transfer Form States
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferTo, setTransferTo] = useState("");
+  const [transferDescription, setTransferDescription] = useState("");
+  
+  // Pay Bills Form States
+  const [billAmount, setBillAmount] = useState("");
+  const [billType, setBillType] = useState("");
+  const [billProvider, setBillProvider] = useState("");
+  
+  // Savings Goal Form States
+  const [newGoalName, setNewGoalName] = useState("");
+  const [newGoalTarget, setNewGoalTarget] = useState("");
+  const [newGoalMonthly, setNewGoalMonthly] = useState("");
+  
+  // Budget Management States
+  const [isSetBudgetOpen, setIsSetBudgetOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [newBudgetAmount, setNewBudgetAmount] = useState("");
+  
+  // Security Modal States
+  const [isChangePINOpen, setIsChangePINOpen] = useState(false);
+  const [isBiometricOpen, setIsBiometricOpen] = useState(false);
+  const [isExportStatementOpen, setIsExportStatementOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  
+  // Security Form States
+  const [currentPIN, setCurrentPIN] = useState("");
+  const [newPIN, setNewPIN] = useState("");
+  const [confirmPIN, setConfirmPIN] = useState("");
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  
+  // Use data from wallet context
+  const recentTransactions = walletData.transactions.slice(0, 4);
+  const savingsGoals = walletData.savingsGoals;
+  const budgetCategories = walletData.budgetCategories;
+
+  useEffect(() => {
+    const profile = localStorage.getItem('userProfile');
+    if (profile) {
+      const parsedProfile = JSON.parse(profile);
+      setUserProfile(parsedProfile);
+    }
+  }, []);
+
+  // Clear form data when modals open
+  useEffect(() => {
+    if (isTransferOpen) {
+      setTransferAmount("");
+      setTransferTo("");
+      setTransferDescription("");
+    }
+  }, [isTransferOpen]);
+
+  useEffect(() => {
+    if (isDepositOpen) {
+      setDepositAmount("");
+    }
+  }, [isDepositOpen]);
+
+  useEffect(() => {
+    if (isWithdrawOpen) {
+      setWithdrawAmount("");
+    }
+  }, [isWithdrawOpen]);
+
+  const handleDeposit = () => {
+    const amount = parseFloat(depositAmount);
+    if (amount > 0 && amount <= 100000) {
+      updateBalance(amount, 'deposit');
+      addTransaction({
+        type: 'deposit',
+        amount,
+        description: 'Wallet Deposit'
+      });
+      notifyTransaction('deposit', amount, 'Wallet Deposit');
+      setDepositAmount("");
+      setIsDepositOpen(false);
+    }
+  };
+
+  const handleWithdraw = () => {
+    const amount = parseFloat(withdrawAmount);
+    if (amount > 0 && amount <= walletData.availableBalance && amount >= 100) {
+      updateBalance(amount, 'withdraw');
+      addTransaction({
+        type: 'withdraw',
+        amount,
+        description: 'Wallet Withdrawal'
+      });
+      notifyTransaction('withdraw', amount, 'Wallet Withdrawal');
+      setWithdrawAmount("");
+      setIsWithdrawOpen(false);
+    }
+  };
+
+  const handleTransfer = () => {
+    const amount = parseFloat(transferAmount);
+    if (amount > 0 && amount <= walletData.availableBalance && amount >= 100 && transferTo.trim()) {
+      updateBalance(amount, 'withdraw');
+      addTransaction({
+        type: 'transfer',
+        amount,
+        description: `Transfer to ${transferTo}: ${transferDescription || 'Money Transfer'}`
+      });
+      notifyTransaction('transfer', amount, `Transfer to ${transferTo}`);
+      setTransferAmount("");
+      setTransferTo("");
+      setTransferDescription("");
+      setIsTransferOpen(false);
+    }
+  };
+
+  const handlePayBill = () => {
+    const amount = parseFloat(billAmount);
+    if (amount > 0 && amount <= walletData.availableBalance && amount >= 100 && billType.trim()) {
+      updateBalance(amount, 'withdraw');
+      addTransaction({
+        type: 'expense',
+        amount,
+        description: `${billType} Bill - ${billProvider || 'Utility Bill'}`
+      });
+      notifyTransaction('payment', amount, `${billType} Bill Payment`);
+      setBillAmount("");
+      setBillType("");
+      setBillProvider("");
+      setIsPayBillsOpen(false);
+    }
+  };
+
+  const handleCreateSavingsGoal = () => {
+    const targetAmount = parseFloat(newGoalTarget);
+    const monthlyContribution = parseFloat(newGoalMonthly);
+    if (newGoalName.trim() && targetAmount > 0 && monthlyContribution > 0) {
+      // This would typically add to the savings goals array
+      // For now, we'll just close the modal and show success
+      setNewGoalName("");
+      setNewGoalTarget("");
+      setNewGoalMonthly("");
+      setIsSavingsManagementOpen(false);
+    }
+  };
+
+  const handleSetBudget = () => {
+    const amount = parseFloat(newBudgetAmount);
+    if (selectedCategory && amount > 0) {
+      // This would typically update the budget category
+      // For now, we'll just close the modal and show success
+      setSelectedCategory("");
+      setNewBudgetAmount("");
+      setIsSetBudgetOpen(false);
+    }
+  };
+
+  const handleChangePIN = () => {
+    if (currentPIN && newPIN && confirmPIN && newPIN === confirmPIN && newPIN.length >= 4) {
+      // This would typically update the PIN
+      // For now, we'll just close the modal and show success
+      setCurrentPIN("");
+      setNewPIN("");
+      setConfirmPIN("");
+      setIsChangePINOpen(false);
+    }
+  };
+
+  const handleToggleBiometric = () => {
+    setBiometricEnabled(!biometricEnabled);
+    setIsBiometricOpen(false);
+  };
+
+  const handleExportStatement = () => {
+    // This would typically generate and download a statement
+    // For now, we'll just close the modal and show success
+    setIsExportStatementOpen(false);
+  };
+
+
+  const getProgressPercentage = (saved: number, target: number) => {
+    return Math.min((saved / target) * 100, 100);
+  };
+
+  const getBudgetProgressPercentage = (spent: number, budget: number) => {
+    return Math.min((spent / budget) * 100, 100);
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <DashboardHeader />
+      
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">{t('digitalWallet.title')}</h1>
+            <p className="text-muted-foreground">{t('digitalWallet.subtitle')}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Shield className="w-3 h-3" />
+              Secure
+            </Badge>
+          </div>
+        </div>
+
+        {/* Balance Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{t('digitalWallet.currentBalance')}</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(walletData.currentBalance)}</div>
+              <p className="text-xs text-muted-foreground">
+                {t('digitalWallet.availableBalance')}: {formatCurrency(walletData.availableBalance)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{t('digitalWallet.totalSavings')}</CardTitle>
+              <PiggyBank className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(walletData.totalSavings)}</div>
+              <p className="text-xs text-muted-foreground">
+                +12% from last month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{t('digitalWallet.monthlyBudget')}</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(walletData.monthlyBudget)}</div>
+              <p className="text-xs text-muted-foreground">
+                ₹12,500 spent this month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
+              <Settings className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <Dialog open={isDepositOpen} onOpenChange={setIsDepositOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="flex-1">
+                      <Plus className="w-3 h-3 mr-1" />
+                      {t('digitalWallet.deposit')}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{t('digitalWallet.deposit')}</DialogTitle>
+                      <DialogDescription>
+                        {t('digitalWallet.depositAmount')}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="deposit-amount">{t('digitalWallet.amount')}</Label>
+                        <Input
+                          id="deposit-amount"
+                          type="number"
+                          placeholder={t('digitalWallet.enterAmount')}
+                          value={depositAmount}
+                          onChange={(e) => setDepositAmount(e.target.value)}
+                          className="w-full"
+                          autoFocus
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {t('digitalWallet.minimumAmount')} - {t('digitalWallet.maximumAmount')}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleDeposit} className="flex-1">
+                          {t('digitalWallet.confirm')}
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsDepositOpen(false)}>
+                          {t('digitalWallet.cancel')}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="flex-1">
+                      <Minus className="w-3 h-3 mr-1" />
+                      {t('digitalWallet.withdraw')}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{t('digitalWallet.withdraw')}</DialogTitle>
+                      <DialogDescription>
+                        {t('digitalWallet.withdrawAmount')}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="withdraw-amount">{t('digitalWallet.amount')}</Label>
+                        <Input
+                          id="withdraw-amount"
+                          type="number"
+                          placeholder={t('digitalWallet.enterAmount')}
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          className="w-full"
+                          autoFocus
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Available: {formatCurrency(walletData.availableBalance)}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleWithdraw} className="flex-1">
+                          {t('digitalWallet.confirm')}
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsWithdrawOpen(false)}>
+                          {t('digitalWallet.cancel')}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('digitalWallet.quickActions')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="h-20 flex flex-col gap-2">
+                        <ArrowUpDown className="w-6 h-6" />
+                        <span className="text-sm">{t('digitalWallet.transfer')}</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>{t('digitalWallet.transfer')}</DialogTitle>
+                        <DialogDescription>
+                          Transfer money to another account or person
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="transfer-amount">{t('digitalWallet.amount')}</Label>
+                          <Input
+                            id="transfer-amount"
+                            type="number"
+                            placeholder={t('digitalWallet.enterAmount')}
+                            value={transferAmount}
+                            onChange={(e) => setTransferAmount(e.target.value)}
+                            className="w-full"
+                            autoFocus
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="transfer-to">Transfer To</Label>
+                          <Input
+                            id="transfer-to"
+                            type="text"
+                            placeholder="Enter recipient name or account"
+                            value={transferTo}
+                            onChange={(e) => setTransferTo(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="transfer-description">Description (Optional)</Label>
+                          <Input
+                            id="transfer-description"
+                            type="text"
+                            placeholder="Enter description"
+                            value={transferDescription}
+                            onChange={(e) => setTransferDescription(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={handleTransfer} className="flex-1">
+                            {t('digitalWallet.confirm')}
+                          </Button>
+                          <Button variant="outline" onClick={() => setIsTransferOpen(false)}>
+                            {t('digitalWallet.cancel')}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog open={isPayBillsOpen} onOpenChange={setIsPayBillsOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="h-20 flex flex-col gap-2">
+                        <CreditCard className="w-6 h-6" />
+                        <span className="text-sm">{t('digitalWallet.payBills')}</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{t('digitalWallet.payBills')}</DialogTitle>
+                        <DialogDescription>
+                          Pay your utility bills and other expenses
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="bill-amount">{t('digitalWallet.amount')}</Label>
+                          <Input
+                            id="bill-amount"
+                            type="number"
+                            placeholder={t('digitalWallet.enterAmount')}
+                            value={billAmount}
+                            onChange={(e) => setBillAmount(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="bill-type">Bill Type</Label>
+                          <Input
+                            id="bill-type"
+                            type="text"
+                            placeholder="e.g., Electricity, Water, Internet"
+                            value={billType}
+                            onChange={(e) => setBillType(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="bill-provider">Provider (Optional)</Label>
+                          <Input
+                            id="bill-provider"
+                            type="text"
+                            placeholder="e.g., BESCOM, BWSSB"
+                            value={billProvider}
+                            onChange={(e) => setBillProvider(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={handlePayBill} className="flex-1">
+                            {t('digitalWallet.confirm')}
+                          </Button>
+                          <Button variant="outline" onClick={() => setIsPayBillsOpen(false)}>
+                            {t('digitalWallet.cancel')}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog open={isSavingsManagementOpen} onOpenChange={setIsSavingsManagementOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="h-20 flex flex-col gap-2">
+                        <Target className="w-6 h-6" />
+                        <span className="text-sm">{t('digitalWallet.savingsManagement')}</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{t('digitalWallet.savingsManagement')}</DialogTitle>
+                        <DialogDescription>
+                          Create and manage your savings goals
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="goal-name">Goal Name</Label>
+                          <Input
+                            id="goal-name"
+                            type="text"
+                            placeholder="e.g., Emergency Fund, Vacation"
+                            value={newGoalName}
+                            onChange={(e) => setNewGoalName(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="goal-target">{t('digitalWallet.targetAmount')}</Label>
+                          <Input
+                            id="goal-target"
+                            type="number"
+                            placeholder="Enter target amount"
+                            value={newGoalTarget}
+                            onChange={(e) => setNewGoalTarget(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="goal-monthly">{t('digitalWallet.monthlyContribution')}</Label>
+                          <Input
+                            id="goal-monthly"
+                            type="number"
+                            placeholder="Enter monthly contribution"
+                            value={newGoalMonthly}
+                            onChange={(e) => setNewGoalMonthly(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={handleCreateSavingsGoal} className="flex-1">
+                            {t('digitalWallet.createGoal')}
+                          </Button>
+                          <Button variant="outline" onClick={() => setIsSavingsManagementOpen(false)}>
+                            {t('digitalWallet.cancel')}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex flex-col gap-2"
+                    onClick={() => setIsBudgetTrackerOpen(true)}
+                  >
+                    <TrendingUp className="w-6 h-6" />
+                    <span className="text-sm">{t('digitalWallet.budgetTracker')}</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Savings Goals */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  {t('digitalWallet.savingsGoals')}
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setIsSavingsManagementOpen(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    {t('digitalWallet.createGoal')}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {savingsGoals.map((goal) => (
+                  <div key={goal.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{goal.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {formatCurrency(goal.savedAmount)} / {formatCurrency(goal.targetAmount)}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={getProgressPercentage(goal.savedAmount, goal.targetAmount)} 
+                      className="h-2"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{Math.round(getProgressPercentage(goal.savedAmount, goal.targetAmount))}% complete</span>
+                      <span>₹{goal.monthlyContribution}/month</span>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Budget Tracker */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  {t('digitalWallet.budgetTracker')}
+                  <Button size="sm" variant="outline" onClick={() => setIsSetBudgetOpen(true)}>
+                    <Settings className="w-4 h-4 mr-1" />
+                    {t('digitalWallet.setBudget')}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {budgetCategories.map((category) => (
+                  <div key={category.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${category.color}`}></div>
+                        <span className="font-medium">{category.name}</span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {formatCurrency(category.spentAmount)} / {formatCurrency(category.budgetAmount)}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={getBudgetProgressPercentage(category.spentAmount, category.budgetAmount)} 
+                      className="h-2"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>
+                        {Math.round(getBudgetProgressPercentage(category.spentAmount, category.budgetAmount))}% used
+                      </span>
+                      <span>
+                        {formatCurrency(category.budgetAmount - category.spentAmount)} remaining
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+
+            {/* Recent Transactions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <History className="w-5 h-5" />
+                    {t('digitalWallet.recentTransactions')}
+                  </div>
+                  <Button size="sm" variant="ghost">
+                    {t('digitalWallet.viewAll')}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {recentTransactions.slice(0, 4).map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        transaction.type === 'deposit' ? 'bg-green-100 text-green-600' :
+                        transaction.type === 'withdraw' ? 'bg-red-100 text-red-600' :
+                        'bg-blue-100 text-blue-600'
+                      }`}>
+                        {transaction.type === 'deposit' ? <Plus className="w-4 h-4" /> :
+                         transaction.type === 'withdraw' ? <Minus className="w-4 h-4" /> :
+                         <ArrowUpDown className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{transaction.description}</p>
+                        <p className="text-xs text-muted-foreground">{transaction.date}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-medium ${
+                        transaction.type === 'deposit' ? 'text-green-600' :
+                        transaction.type === 'withdraw' ? 'text-red-600' :
+                        'text-blue-600'
+                      }`}>
+                        {transaction.type === 'deposit' ? '+' : transaction.type === 'withdraw' ? '-' : ''}
+                        {formatCurrency(transaction.amount)}
+                      </p>
+                      <Badge variant={transaction.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
+                        {transaction.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Security & Help */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  {t('digitalWallet.security')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => setIsChangePINOpen(true)}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  {t('digitalWallet.changePIN')}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => setIsBiometricOpen(true)}
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  {biometricEnabled ? 'Disable Biometric' : t('digitalWallet.enableBiometric')}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => setIsExportStatementOpen(true)}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  {t('digitalWallet.exportStatement')}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => setIsHelpOpen(true)}
+                >
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  {t('digitalWallet.help')}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+
+      {/* All Modals - Always Available */}
+      {/* Budget Tracker Modal */}
+      <Dialog open={isBudgetTrackerOpen} onOpenChange={setIsBudgetTrackerOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('digitalWallet.budgetTracker')}</DialogTitle>
+            <DialogDescription>
+              View and manage your monthly budget categories
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-4">
+              {budgetCategories.map((category) => (
+                <div key={category.id} className="p-4 border rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${category.color}`}></div>
+                      <span className="font-medium">{category.name}</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {formatCurrency(category.spentAmount)} / {formatCurrency(category.budgetAmount)}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={getBudgetProgressPercentage(category.spentAmount, category.budgetAmount)} 
+                    className="h-2 mb-2"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>
+                      {Math.round(getBudgetProgressPercentage(category.spentAmount, category.budgetAmount))}% used
+                    </span>
+                    <span>
+                      {formatCurrency(category.budgetAmount - category.spentAmount)} remaining
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => setIsBudgetTrackerOpen(false)} className="flex-1">
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Budget Modal */}
+      <Dialog open={isSetBudgetOpen} onOpenChange={setIsSetBudgetOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('digitalWallet.setBudget')}</DialogTitle>
+            <DialogDescription>
+              Set or update your monthly budget for different categories
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="budget-category">Select Category</Label>
+              <select
+                id="budget-category"
+                className="w-full p-2 border rounded-md"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="">Select a category</option>
+                {budgetCategories.map((category) => (
+                  <option key={category.id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="budget-amount">{t('digitalWallet.budgetAmount')}</Label>
+              <Input
+                id="budget-amount"
+                type="number"
+                placeholder="Enter budget amount"
+                value={newBudgetAmount}
+                onChange={(e) => setNewBudgetAmount(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleSetBudget} className="flex-1">
+                {t('digitalWallet.setBudget')}
+              </Button>
+              <Button variant="outline" onClick={() => setIsSetBudgetOpen(false)}>
+                {t('digitalWallet.cancel')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change PIN Modal */}
+      <Dialog open={isChangePINOpen} onOpenChange={setIsChangePINOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('digitalWallet.changePIN')}</DialogTitle>
+            <DialogDescription>
+              Change your wallet PIN for enhanced security
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="current-pin">Current PIN</Label>
+              <Input
+                id="current-pin"
+                type="password"
+                placeholder="Enter current PIN"
+                value={currentPIN}
+                onChange={(e) => setCurrentPIN(e.target.value)}
+                maxLength={6}
+              />
+            </div>
+            <div>
+              <Label htmlFor="new-pin">New PIN</Label>
+              <Input
+                id="new-pin"
+                type="password"
+                placeholder="Enter new PIN (4-6 digits)"
+                value={newPIN}
+                onChange={(e) => setNewPIN(e.target.value)}
+                maxLength={6}
+              />
+            </div>
+            <div>
+              <Label htmlFor="confirm-pin">Confirm New PIN</Label>
+              <Input
+                id="confirm-pin"
+                type="password"
+                placeholder="Confirm new PIN"
+                value={confirmPIN}
+                onChange={(e) => setConfirmPIN(e.target.value)}
+                maxLength={6}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleChangePIN} className="flex-1">
+                Change PIN
+              </Button>
+              <Button variant="outline" onClick={() => setIsChangePINOpen(false)}>
+                {t('digitalWallet.cancel')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Biometric Modal */}
+      <Dialog open={isBiometricOpen} onOpenChange={setIsBiometricOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{biometricEnabled ? 'Disable Biometric' : t('digitalWallet.enableBiometric')}</DialogTitle>
+            <DialogDescription>
+              {biometricEnabled 
+                ? 'Disable biometric authentication for your wallet'
+                : 'Enable biometric authentication for quick and secure access'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center p-4">
+              <Shield className="w-12 h-12 mx-auto mb-2 text-primary" />
+              <p className="text-sm text-muted-foreground">
+                {biometricEnabled 
+                  ? 'Biometric authentication is currently enabled'
+                  : 'Use your fingerprint or face ID for secure access'
+                }
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleToggleBiometric} className="flex-1">
+                {biometricEnabled ? 'Disable' : 'Enable'} Biometric
+              </Button>
+              <Button variant="outline" onClick={() => setIsBiometricOpen(false)}>
+                {t('digitalWallet.cancel')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Statement Modal */}
+      <Dialog open={isExportStatementOpen} onOpenChange={setIsExportStatementOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('digitalWallet.exportStatement')}</DialogTitle>
+            <DialogDescription>
+              Download your transaction statement for the selected period
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center p-4">
+              <Download className="w-12 h-12 mx-auto mb-2 text-primary" />
+              <p className="text-sm text-muted-foreground">
+                Your statement will be downloaded as a PDF file
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleExportStatement} className="flex-1">
+                Download Statement
+              </Button>
+              <Button variant="outline" onClick={() => setIsExportStatementOpen(false)}>
+                {t('digitalWallet.cancel')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Help Modal */}
+      <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('digitalWallet.help')}</DialogTitle>
+            <DialogDescription>
+              Get help and support for your digital wallet
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-4">
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-medium mb-2">{t('digitalWallet.faq')}</h4>
+                <p className="text-sm text-muted-foreground">
+                  Find answers to frequently asked questions about using your digital wallet.
+                </p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-medium mb-2">{t('digitalWallet.tutorials')}</h4>
+                <p className="text-sm text-muted-foreground">
+                  Learn how to use all features of your digital wallet with step-by-step tutorials.
+                </p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-medium mb-2">{t('digitalWallet.contactSupport')}</h4>
+                <p className="text-sm text-muted-foreground">
+                  Contact our support team for personalized assistance with your wallet.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => setIsHelpOpen(false)} className="flex-1">
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+    </div>
+  );
+};
