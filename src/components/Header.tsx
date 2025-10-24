@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ProfileDropdown } from "./ProfileDropdown";
@@ -13,6 +14,7 @@ export const Header = () => {
   const { t } = useTranslation();
   const [userProfile, setUserProfile] = useState<{name: string; initials: string} | null>(null);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const profile = localStorage.getItem('userProfile');
@@ -35,6 +37,19 @@ export const Header = () => {
     navigate('/signin');
   };
 
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    setIsMobileMenuOpen(false);
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-3 sm:px-4">
@@ -42,18 +57,30 @@ export const Header = () => {
           <FinBridgeLogo size="md" />
           
           <nav className="hidden lg:flex items-center gap-4 xl:gap-6">
-            <a href="#features" className="text-xs sm:text-sm font-medium hover:text-primary transition-colors">
+            <button 
+              onClick={() => scrollToSection('features')}
+              className="text-xs sm:text-sm font-medium hover:text-primary transition-colors"
+            >
               {t('navigation.features')}
-            </a>
-            <a href="#savings" className="text-xs sm:text-sm font-medium hover:text-primary transition-colors">
+            </button>
+            <button 
+              onClick={() => scrollToSection('savings')}
+              className="text-xs sm:text-sm font-medium hover:text-primary transition-colors"
+            >
               {t('navigation.savings')}
-            </a>
-            <a href="#learn" className="text-xs sm:text-sm font-medium hover:text-primary transition-colors">
+            </button>
+            <button 
+              onClick={() => handleNavigation('/learn')}
+              className="text-xs sm:text-sm font-medium hover:text-primary transition-colors"
+            >
               {t('navigation.learn')}
-            </a>
-            <a href="#about" className="text-xs sm:text-sm font-medium hover:text-primary transition-colors">
+            </button>
+            <button 
+              onClick={() => scrollToSection('about')}
+              className="text-xs sm:text-sm font-medium hover:text-primary transition-colors"
+            >
               {t('navigation.about')}
-            </a>
+            </button>
           </nav>
           
           <div className="flex items-center gap-2 sm:gap-3">
@@ -70,9 +97,97 @@ export const Header = () => {
             ) : (
               <ProfileDropdown />
             )}
-            <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8 sm:h-9 sm:w-9">
-              <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
+            {/* Mobile menu */}
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8 sm:h-9 sm:w-9">
+                  <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <div className="flex flex-col space-y-4 mt-8">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">{t('navigation.menu') || 'Menu'}</h2>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <nav className="flex flex-col space-y-2">
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => scrollToSection('features')}
+                    >
+                      {t('navigation.features')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => scrollToSection('savings')}
+                    >
+                      {t('navigation.savings')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/learn')}
+                    >
+                      {t('navigation.learn')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => scrollToSection('about')}
+                    >
+                      {t('navigation.about')}
+                    </Button>
+                    {isSignedIn && (
+                      <>
+                        <div className="border-t pt-2 mt-2">
+                          <Button
+                            variant="ghost"
+                            className="justify-start"
+                            onClick={() => handleNavigation('/dashboard')}
+                          >
+                            {t('navigation.dashboard')}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="justify-start"
+                            onClick={() => handleNavigation('/digital-wallet')}
+                          >
+                            {t('navigation.digitalWallet')}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="justify-start"
+                            onClick={() => handleNavigation('/transactions')}
+                          >
+                            {t('navigation.transactions')}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </nav>
+                  
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-medium">{t('common.language') || 'Language'}</span>
+                      <LanguageSelector />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{t('common.theme') || 'Theme'}</span>
+                      <ThemeToggle />
+                    </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

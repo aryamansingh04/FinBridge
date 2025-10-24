@@ -56,8 +56,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       const defaultNotifications: Notification[] = [
         {
           id: '1',
-          title: t('notifications.welcome.title'),
-          message: t('notifications.welcome.message'),
+          title: 'Welcome to FinBridge!',
+          message: 'Your financial journey starts here. Explore our features to manage your money better.',
           type: 'info',
           timestamp: new Date().toISOString(),
           isRead: false,
@@ -67,7 +67,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       setNotifications(defaultNotifications);
       localStorage.setItem('notifications', JSON.stringify(defaultNotifications));
     }
-  }, [t]);
+  }, []);
 
   // Save notifications to localStorage whenever they change
   useEffect(() => {

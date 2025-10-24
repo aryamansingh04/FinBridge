@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
-  Download, 
   Filter, 
   Search, 
   Calendar,
@@ -24,7 +23,8 @@ import {
   PiggyBank,
   FileText,
   Eye,
-  MoreHorizontal
+  MoreHorizontal,
+  Receipt
 } from "lucide-react";
 
 interface Transaction {
@@ -281,16 +281,17 @@ export const Transactions = () => {
     setDateFilter("all");
   };
 
-  if (!userProfile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">{t('transactions.accessDenied')}</h2>
-          <p className="text-muted-foreground">{t('transactions.completeProfile')}</p>
-        </div>
-      </div>
-    );
-  }
+  // Remove the userProfile check to allow access to transactions
+  // if (!userProfile) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center">
+  //       <div className="text-center">
+  //         <h2 className="text-2xl font-bold mb-4">{t('transactions.accessDenied')}</h2>
+  //         <p className="text-muted-foreground">{t('transactions.completeProfile')}</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-background">
@@ -303,12 +304,13 @@ export const Transactions = () => {
             <h1 className="text-2xl sm:text-3xl font-bold">{t('transactions.title')}</h1>
             <p className="text-muted-foreground">{t('transactions.subtitle')}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Dialog open={isExportOpen} onOpenChange={setIsExportOpen}>
               <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  {t('transactions.exportStatement')}
+                <Button className="flex items-center gap-2 w-full sm:w-auto h-10 sm:h-auto px-3 sm:px-4 py-2 sm:py-2 text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95">
+                  <FileText className="w-4 h-4 flex-shrink-0" />
+                  <span className="hidden sm:inline">{t('transactions.exportStatement')}</span>
+                  <span className="sm:hidden">Export</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -351,12 +353,20 @@ export const Transactions = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleExportStatement} className="flex-1">
-                      <Download className="w-4 h-4 mr-2" />
-                      {t('transactions.downloadStatement')}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      onClick={handleExportStatement} 
+                      className="flex-1 h-10 sm:h-auto px-4 py-2 text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95"
+                    >
+                      <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="hidden sm:inline">{t('transactions.downloadStatement')}</span>
+                      <span className="sm:hidden">Download</span>
                     </Button>
-                    <Button variant="outline" onClick={() => setIsExportOpen(false)}>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsExportOpen(false)}
+                      className="h-10 sm:h-auto px-4 py-2 text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95"
+                    >
                       {t('transactions.cancel')}
                     </Button>
                   </div>
@@ -403,6 +413,8 @@ export const Transactions = () => {
                     <SelectItem value="transfer">{t('transactions.transfers')}</SelectItem>
                     <SelectItem value="income">{t('transactions.income')}</SelectItem>
                     <SelectItem value="expense">{t('transactions.expenses')}</SelectItem>
+                    <SelectItem value="loan_application">{t('transactions.loanApplications')}</SelectItem>
+                    <SelectItem value="debt_payment">{t('transactions.debtPayments')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -659,23 +671,13 @@ export const Transactions = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-4">
+              <div className="flex justify-center pt-4">
                 <Button 
                   variant="outline" 
-                  className="flex-1"
+                  className="w-full max-w-xs"
                   onClick={() => setIsTransactionDetailOpen(false)}
                 >
                   Close
-                </Button>
-                <Button 
-                  className="flex-1"
-                  onClick={() => {
-                    // Here you could add functionality to download receipt, share, etc.
-                    console.log('Download receipt for transaction:', selectedTransaction.id);
-                  }}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Receipt
                 </Button>
               </div>
             </div>

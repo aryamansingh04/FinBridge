@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,25 @@ export const News = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
   const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
+  const [bookmarkedArticles, setBookmarkedArticles] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load bookmarks from localStorage on component mount
+  useEffect(() => {
+    const savedBookmarks = localStorage.getItem('finbridge_news_bookmarks');
+    if (savedBookmarks) {
+      try {
+        setBookmarkedArticles(new Set(JSON.parse(savedBookmarks)));
+      } catch (error) {
+        console.error('Error loading bookmarks:', error);
+      }
+    }
+  }, []);
+
+  // Save bookmarks to localStorage whenever bookmarks change
+  useEffect(() => {
+    localStorage.setItem('finbridge_news_bookmarks', JSON.stringify(Array.from(bookmarkedArticles)));
+  }, [bookmarkedArticles]);
 
   const categories = [
     { id: "all", name: t('news.allNews'), icon: <Newspaper className="w-4 h-4" /> },
@@ -278,6 +297,39 @@ export const News = () => {
     return views.toString();
   };
 
+  const toggleBookmark = (articleId: string) => {
+    setBookmarkedArticles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(articleId)) {
+        newSet.delete(articleId);
+      } else {
+        newSet.add(articleId);
+      }
+      return newSet;
+    });
+  };
+
+  const shareArticle = async (article: NewsArticle) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: article.title,
+          text: article.summary,
+          url: window.location.href,
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      const shareText = `${article.title}\n\n${article.summary}\n\nRead more: ${window.location.href}`;
+      navigator.clipboard.writeText(shareText).then(() => {
+        // You could show a toast notification here
+        console.log('Article link copied to clipboard');
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader />
@@ -415,6 +467,10 @@ export const News = () => {
                   src={article.imageUrl}
                   alt={article.title}
                   className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&h=400&fit=crop';
+                  }}
                 />
                 <div className="absolute top-3 left-3 flex gap-2">
                   {article.isBreaking && (
@@ -489,10 +545,24 @@ export const News = () => {
                       </>
                     )}
                   </Button>
-                  <Button variant="outline" size="icon" className="h-10 sm:h-12 w-10 sm:w-12">
-                    <Bookmark className="w-4 h-4" />
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className={`h-10 sm:h-12 w-10 sm:w-12 ${
+                      bookmarkedArticles.has(article.id) 
+                        ? 'bg-blue-50 border-blue-200 text-blue-600' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                    onClick={() => toggleBookmark(article.id)}
+                  >
+                    <Bookmark className={`w-4 h-4 ${bookmarkedArticles.has(article.id) ? 'fill-current' : ''}`} />
                   </Button>
-                  <Button variant="outline" size="icon" className="h-10 sm:h-12 w-10 sm:w-12">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 sm:h-12 w-10 sm:w-12 hover:bg-gray-50"
+                    onClick={() => shareArticle(article)}
+                  >
                     <Share2 className="w-4 h-4" />
                   </Button>
                 </div>

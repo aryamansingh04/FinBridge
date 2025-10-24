@@ -7,6 +7,8 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { useTranslation } from "react-i18next";
 import { useWallet } from "@/contexts/WalletContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useDebt } from "@/contexts/DebtContext";
+import { useNavigate } from "react-router-dom";
 import { 
   Wallet, 
   TrendingUp, 
@@ -36,9 +38,7 @@ import {
   Shield,
   Lightbulb,
   Target,
-  CheckSquare,
-  TrendingUp,
-  Plus
+  CheckSquare
 } from "lucide-react";
 
 interface Transaction {
@@ -267,10 +267,39 @@ const paymentStatusColors = {
 
 export const Dashboard = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { walletData } = useWallet();
   const { notifications, markAsRead, getUnreadCount } = useNotifications();
+  const { getDebtSummary } = useDebt();
+  
+  // Load loan applications for dashboard display
+  const [loanApplications, setLoanApplications] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const savedApplications = localStorage.getItem('finbridge_loan_applications');
+    if (savedApplications) {
+      try {
+        setLoanApplications(JSON.parse(savedApplications));
+      } catch (error) {
+        console.error('Error loading loan applications:', error);
+      }
+    }
+  }, []);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentSchedule[]>(mockPaymentSchedule);
+  
+  // Load payment schedule from debt repayment planner
+  useEffect(() => {
+    const savedSchedule = localStorage.getItem('dashboard_payment_schedule');
+    if (savedSchedule) {
+      try {
+        const parsedSchedule = JSON.parse(savedSchedule);
+        setPaymentSchedule(parsedSchedule);
+      } catch (error) {
+        console.error('Error loading dashboard payment schedule:', error);
+      }
+    }
+  }, []);
   const [currentDate, setCurrentDate] = useState(new Date());
   
   // Use transactions from wallet context, fallback to mock data if needed
@@ -289,6 +318,9 @@ export const Dashboard = () => {
   const currentBalance = walletData.currentBalance; // Use wallet balance
   const monthlySalary = userProfile ? parseInt(userProfile.monthlySalary.replace(/[^\d]/g, '')) : 0;
   const savingsRate = monthlySalary > 0 ? ((monthlySalary - totalExpenses) / monthlySalary) * 100 : 0;
+  
+  // Get debt summary
+  const debtSummary = getDebtSummary();
 
   // Calculate category-wise expenses
   const categoryExpenses = transactions
@@ -466,16 +498,16 @@ export const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Savings Rate */}
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          {/* Total Debt */}
+          <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('dashboard.savingsRate')}</CardTitle>
-              <PiggyBank className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-medium">{t('dashboard.totalDebt') || 'Total Debt'}</CardTitle>
+              <CreditCard className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">{Math.round(savingsRate)}%</div>
+              <div className="text-2xl font-bold text-destructive">₹{debtSummary.totalDebt.toLocaleString('en-IN')}</div>
               <p className="text-xs text-muted-foreground">
-                {savingsRate >= 20 ? t('dashboard.greatJob') : savingsRate >= 10 ? t('dashboard.goodProgress') : t('dashboard.roomForImprovement')}
+                {debtSummary.activeDebts} {t('dashboard.activeDebts') || 'active debts'}
               </p>
             </CardContent>
           </Card>
@@ -494,8 +526,14 @@ export const Dashboard = () => {
                   </Badge>
                 )}
               </div>
-              <Button variant="ghost" size="sm" className="text-primary">
-                {t('dashboard.viewAll')}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-primary h-8 sm:h-auto px-2 sm:px-3 py-1 sm:py-1 text-xs sm:text-sm transition-all duration-200 hover:scale-105 active:scale-95"
+                onClick={() => navigate('/transactions')}
+              >
+                <span className="hidden sm:inline">{t('dashboard.viewAll')}</span>
+                <span className="sm:hidden">{t('dashboard.viewAllShort') || 'All'}</span>
               </Button>
             </div>
             <CardDescription>{t('dashboard.notificationsDescription')}</CardDescription>
@@ -543,6 +581,111 @@ export const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Debt Overview */}
+        {debtSummary.activeDebts > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-destructive" />
+                  <CardTitle>{t('dashboard.debtOverview') || 'Debt Overview'}</CardTitle>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => window.location.href = '/debt-repayment'}
+                  className="text-destructive"
+                >
+                  {t('dashboard.manageDebt') || 'Manage Debt'}
+                </Button>
+              </div>
+              <CardDescription>{t('dashboard.debtOverviewDescription') || 'Track your debt repayment progress'}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-destructive">₹{debtSummary.totalDebt.toLocaleString('en-IN')}</div>
+                  <p className="text-sm text-muted-foreground">{t('dashboard.totalDebt') || 'Total Debt'}</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">₹{debtSummary.totalMonthlyPayments.toLocaleString('en-IN')}</div>
+                  <p className="text-sm text-muted-foreground">{t('dashboard.monthlyPayments') || 'Monthly Payments'}</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{debtSummary.averageInterestRate.toFixed(1)}%</div>
+                  <p className="text-sm text-muted-foreground">{t('dashboard.avgInterestRate') || 'Avg Interest Rate'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Loan Overview */}
+        {loanApplications.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-blue-600" />
+                  <CardTitle>{t('dashboard.loanOverview') || 'Loan Overview'}</CardTitle>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => window.location.href = '/loan'}
+                  className="text-blue-600"
+                >
+                  {t('dashboard.manageLoans') || 'Manage Loans'}
+                </Button>
+              </div>
+              <CardDescription>{t('dashboard.loanOverviewDescription') || 'Track your loan applications and status'}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {loanApplications.slice(0, 3).map((application) => (
+                  <div key={application.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <CreditCard className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold">{application.loanType}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {t('dashboard.amount') || 'Amount'}: ₹{application.amount.toLocaleString('en-IN')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge className={
+                        application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        application.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                        application.status === 'disbursed' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }>
+                        {application.status}
+                      </Badge>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {t('dashboard.emi') || 'EMI'}: ₹{application.monthlyEMI.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {loanApplications.length > 3 && (
+                  <div className="text-center">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.location.href = '/loan'}
+                    >
+                      {t('dashboard.viewAllLoans') || `View All ${loanApplications.length} Loans`}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Payment Calendar */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Calendar */}
@@ -582,8 +725,16 @@ export const Dashboard = () => {
                 {/* Calendar Grid */}
                 <div className="grid grid-cols-7 gap-1 text-center">
                   {/* Day headers */}
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                    <div key={day} className="p-2 text-xs font-medium text-gray-500">
+                  {[
+                    t('dashboard.sun') || 'Sun',
+                    t('dashboard.mon') || 'Mon', 
+                    t('dashboard.tue') || 'Tue',
+                    t('dashboard.wed') || 'Wed',
+                    t('dashboard.thu') || 'Thu',
+                    t('dashboard.fri') || 'Fri',
+                    t('dashboard.sat') || 'Sat'
+                  ].map((day, index) => (
+                    <div key={index} className="p-2 text-xs font-medium text-gray-500">
                       {day}
                     </div>
                   ))}
@@ -625,7 +776,7 @@ export const Dashboard = () => {
                           ))}
                           {payments.length > 2 && (
                             <div className="text-xs text-gray-500">
-                              +{payments.length - 2} more
+                              +{payments.length - 2} {t('dashboard.more') || 'more'}
                             </div>
                           )}
                         </div>

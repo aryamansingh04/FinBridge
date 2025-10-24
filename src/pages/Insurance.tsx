@@ -784,7 +784,7 @@ export const Insurance = () => {
                           }}
                         >
                           <Info className="w-3 h-3 mr-1" />
-                          View Details & Activate
+                          {activeInsurances.includes(insurance.id) ? "View Details" : "View Details & Activate"}
                         </Button>
                       </div>
                     </div>

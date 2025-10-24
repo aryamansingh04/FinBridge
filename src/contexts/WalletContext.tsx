@@ -45,8 +45,10 @@ interface WalletContextType {
   updateBalance: (amount: number, type: 'deposit' | 'withdraw') => void;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'date' | 'status'>) => void;
   addPendingTransaction: (transaction: Transaction) => void;
+  addSavingsGoal: (goal: Omit<SavingsGoal, 'id'>) => void;
   updateSavingsGoal: (goalId: string, savedAmount: number) => void;
   updateBudgetCategory: (categoryId: string, spentAmount: number) => void;
+  setBudgetAmount: (categoryId: string, budgetAmount: number) => void;
   setMonthlyBudget: (budget: number) => void;
   approveLoan: (transactionId: string) => void;
 }
@@ -128,6 +130,18 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }));
   };
 
+  const addSavingsGoal = (goal: Omit<SavingsGoal, 'id'>) => {
+    const newGoal: SavingsGoal = {
+      ...goal,
+      id: Date.now().toString(),
+    };
+
+    setWalletData(prev => ({
+      ...prev,
+      savingsGoals: [...prev.savingsGoals, newGoal],
+    }));
+  };
+
   const updateSavingsGoal = (goalId: string, savedAmount: number) => {
     setWalletData(prev => ({
       ...prev,
@@ -142,6 +156,15 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...prev,
       budgetCategories: prev.budgetCategories.map(category =>
         category.id === categoryId ? { ...category, spentAmount } : category
+      ),
+    }));
+  };
+
+  const setBudgetAmount = (categoryId: string, budgetAmount: number) => {
+    setWalletData(prev => ({
+      ...prev,
+      budgetCategories: prev.budgetCategories.map(category =>
+        category.id === categoryId ? { ...category, budgetAmount } : category
       ),
     }));
   };
@@ -183,8 +206,10 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     updateBalance,
     addTransaction,
     addPendingTransaction,
+    addSavingsGoal,
     updateSavingsGoal,
     updateBudgetCategory,
+    setBudgetAmount,
     setMonthlyBudget,
     approveLoan,
   };

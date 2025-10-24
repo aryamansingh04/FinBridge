@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageSelector } from "./LanguageSelector";
-import { Menu } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Menu, X } from "lucide-react";
 import { FinBridgeLogo } from "./FinBridgeLogo";
 
 interface UserProfile {
@@ -23,6 +24,7 @@ export const DashboardHeader = () => {
   const { t } = useTranslation();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const profile = localStorage.getItem('userProfile');
@@ -43,6 +45,11 @@ export const DashboardHeader = () => {
     localStorage.removeItem('isSignedIn');
     localStorage.removeItem('userEmail');
     navigate('/');
+  };
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -143,10 +150,119 @@ export const DashboardHeader = () => {
               <ProfileDropdown />
             )}
             
-            {/* Mobile menu button */}
-            <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8 sm:h-9 sm:w-9">
-              <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
+            {/* Mobile menu */}
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8 sm:h-9 sm:w-9">
+                  <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <div className="flex flex-col space-y-4 mt-8">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">{t('navigation.menu') || 'Menu'}</h2>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <nav className="flex flex-col space-y-2">
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/dashboard')}
+                    >
+                      {t('navigation.dashboard')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/digital-wallet')}
+                    >
+                      {t('navigation.digitalWallet')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/transactions')}
+                    >
+                      {t('navigation.transactions')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/debt-repayment')}
+                    >
+                      {t('navigation.debtRepayment')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/loan')}
+                    >
+                      {t('navigation.loan')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/credit-score')}
+                    >
+                      {t('navigation.creditScore')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/financial-advisor')}
+                    >
+                      {t('navigation.financialAdvisor')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/insurance')}
+                    >
+                      {t('navigation.insurance')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/schemes')}
+                    >
+                      {t('navigation.schemes')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/learn')}
+                    >
+                      {t('navigation.learn')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleNavigation('/news')}
+                    >
+                      {t('navigation.news')}
+                    </Button>
+                  </nav>
+                  
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-medium">{t('common.language') || 'Language'}</span>
+                      <LanguageSelector />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{t('common.theme') || 'Theme'}</span>
+                      <ThemeToggle />
+                    </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

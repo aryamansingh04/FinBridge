@@ -37,7 +37,6 @@ export const ProfileDropdown = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isUploadStatementOpen, setIsUploadStatementOpen] = useState(false);
-  const [isContactUsOpen, setIsContactUsOpen] = useState(false);
   const [editData, setEditData] = useState({
     name: "",
     occupation: "",
@@ -46,10 +45,6 @@ export const ProfileDropdown = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [contactForm, setContactForm] = useState({
-    subject: "",
-    message: ""
-  });
 
   useEffect(() => {
     const profile = localStorage.getItem('userProfile');
@@ -87,18 +82,6 @@ export const ProfileDropdown = () => {
     }
   };
 
-  const handleContactFormChange = (field: string, value: string) => {
-    setContactForm(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleContactSubmit = () => {
-    if (contactForm.subject && contactForm.message) {
-      // Simulate contact form submission
-      console.log('Contact form submitted:', contactForm);
-      setIsContactUsOpen(false);
-      setContactForm({ subject: "", message: "" });
-    }
-  };
 
   const handleEditChange = (field: string, value: string) => {
     setEditData(prev => ({ ...prev, [field]: value }));
@@ -210,7 +193,7 @@ export const ProfileDropdown = () => {
           {t('digitalWallet.uploadStatement')}
         </DropdownMenuItem>
         
-        <DropdownMenuItem onClick={() => setIsContactUsOpen(true)} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => navigate('/contact')} className="cursor-pointer">
           <MessageCircle className="w-4 h-4 mr-2" />
           {t('digitalWallet.contactUs')}
         </DropdownMenuItem>
@@ -459,67 +442,6 @@ export const ProfileDropdown = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Contact Us Dialog */}
-      <Dialog open={isContactUsOpen} onOpenChange={setIsContactUsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5" />
-              {t('digitalWallet.contactUs')}
-            </DialogTitle>
-            <DialogDescription>
-              Get in touch with our support team for assistance.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="contact-subject" className="text-sm">Subject</Label>
-                <Input
-                  id="contact-subject"
-                  placeholder="What can we help you with?"
-                  value={contactForm.subject}
-                  onChange={(e) => handleContactFormChange('subject', e.target.value)}
-                  className="h-10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact-message" className="text-sm">Message</Label>
-                <textarea
-                  id="contact-message"
-                  placeholder="Please describe your issue or question in detail..."
-                  value={contactForm.message}
-                  onChange={(e) => handleContactFormChange('message', e.target.value)}
-                  className="w-full h-24 px-3 py-2 border border-input rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <h4 className="font-semibold text-sm text-blue-900 mb-2">Contact Information</h4>
-              <div className="space-y-1 text-xs text-blue-700">
-                <p><strong>Email:</strong> support@finbridge.com</p>
-                <p><strong>Phone:</strong> +91 1800-123-4567</p>
-                <p><strong>Hours:</strong> Mon-Fri 9AM-6PM IST</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleContactSubmit}
-                disabled={!contactForm.subject || !contactForm.message}
-                className="flex-1"
-              >
-                Send Message
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setIsContactUsOpen(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </DropdownMenu>
   );
 };

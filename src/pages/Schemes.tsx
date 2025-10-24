@@ -591,16 +591,6 @@ export const Schemes = () => {
               <Award className="w-3 h-3 mr-1" />
               {filteredSchemes.length} Schemes
             </Badge>
-            {/* Test Button */}
-            <Button 
-              asChild
-              variant="outline"
-              size="sm"
-            >
-              <a href="/scheme-details/pradhan-mantri-jan-dhan-yojana">
-                Test Navigation
-              </a>
-            </Button>
           </div>
         </div>
 

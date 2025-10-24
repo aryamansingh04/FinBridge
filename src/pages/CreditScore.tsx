@@ -4,8 +4,8 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-// import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -22,7 +22,9 @@ import {
   Shield,
   Star,
   Award,
-  Zap
+  Zap,
+  RefreshCw,
+  Loader2
 } from "lucide-react";
 
 interface CreditFactors {
@@ -52,6 +54,7 @@ interface UserProfile {
 export const CreditScore = () => {
   const { t } = useTranslation();
   const { walletData } = useWallet();
+  const { toast } = useToast();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [creditScore, setCreditScore] = useState(0);
   const [creditFactors, setCreditFactors] = useState<CreditFactors>({
@@ -63,6 +66,8 @@ export const CreditScore = () => {
   });
   const [creditGrade, setCreditGrade] = useState('');
   const [recommendations, setRecommendations] = useState<CreditRecommendation[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     const profile = localStorage.getItem('userProfile');
@@ -89,8 +94,17 @@ export const CreditScore = () => {
     }
   }, [walletData]);
 
-  const calculateCreditScore = () => {
+  const calculateCreditScore = async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setIsRefreshing(true);
+    }
+    
     try {
+      // Simulate API delay for better UX
+      if (isManualRefresh) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+      
       // Get debt data from localStorage
       const savedDebts = localStorage.getItem('userDebts');
       const debts = savedDebts ? JSON.parse(savedDebts) : [];
@@ -129,9 +143,21 @@ export const CreditScore = () => {
         (recentInquiries * 0.10)
       );
       
-      setCreditScore(Math.max(300, Math.min(850, totalScore)));
-      setCreditGrade(getCreditGrade(totalScore));
+      const newScore = Math.max(300, Math.min(850, totalScore));
+      const newGrade = getCreditGrade(totalScore);
+      
+      setCreditScore(newScore);
+      setCreditGrade(newGrade);
       setRecommendations(generateRecommendations(factors, totalScore));
+      setLastUpdated(new Date());
+      
+      if (isManualRefresh) {
+        toast({
+          title: "Analysis Updated",
+          description: `Your credit score has been refreshed. Current score: ${newScore} (${newGrade})`,
+          duration: 3000,
+        });
+      }
     } catch (error) {
       console.error('Error in calculateCreditScore:', error);
       // Set default values
@@ -145,6 +171,19 @@ export const CreditScore = () => {
         recentInquiries: 650
       });
       setRecommendations([]);
+      
+      if (isManualRefresh) {
+        toast({
+          title: "Analysis Error",
+          description: "Failed to refresh credit analysis. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    } finally {
+      if (isManualRefresh) {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -334,20 +373,48 @@ export const CreditScore = () => {
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold">Credit Score Analysis</h1>
             <p className="text-muted-foreground">Understand and improve your creditworthiness</p>
+            {lastUpdated && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Last updated: {lastUpdated.toLocaleString()}
+              </p>
+            )}
           </div>
-          <Button onClick={calculateCreditScore}>
-            <Activity className="w-4 h-4 mr-2" />
-            Refresh Analysis
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              onClick={() => calculateCreditScore(true)}
+              disabled={isRefreshing}
+              className="w-full sm:w-auto min-w-[140px] h-10 sm:h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isRefreshing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh Analysis
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Credit Score Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Credit Score Card */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 relative">
+            {isRefreshing && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center rounded-lg">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <p className="text-sm text-muted-foreground font-medium">Updating analysis...</p>
+                </div>
+              </div>
+            )}
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5" />
@@ -361,18 +428,23 @@ export const CreditScore = () => {
               <div className="flex flex-col items-center space-y-6">
                 {/* Score Circle */}
                 <div className="relative">
-                  <div className="w-32 h-32 rounded-full border-8 border-gray-200 flex items-center justify-center">
+                  <div className="w-32 h-32 rounded-full border-8 border-gray-200 flex items-center justify-center bg-white z-10 relative">
                     <div className="text-center">
-                      <div className={`text-3xl font-bold ${getCreditColor(creditScore)}`}>
+                      <div className={`text-3xl font-bold transition-all duration-1000 ${getCreditColor(creditScore)}`}>
                         {creditScore}
                       </div>
                       <div className="text-sm text-muted-foreground">out of 850</div>
                     </div>
                   </div>
                   <div 
-                    className="absolute inset-0 w-32 h-32 rounded-full bg-green-200"
+                    className="absolute inset-0 w-32 h-32 rounded-full transition-all duration-1000 ease-out"
                     style={{ 
-                      background: `conic-gradient(green ${(creditScore / 850) * 360}deg, #e5e7eb 0deg)` 
+                      background: `conic-gradient(${
+                        creditScore >= 750 ? '#10b981' :
+                        creditScore >= 700 ? '#3b82f6' :
+                        creditScore >= 650 ? '#f59e0b' :
+                        creditScore >= 600 ? '#f97316' : '#ef4444'
+                      } ${(creditScore / 850) * 360}deg, #e5e7eb 0deg)` 
                     }}
                   />
                 </div>
@@ -424,7 +496,7 @@ export const CreditScore = () => {
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-blue-500 transition-all duration-300"
+                      className="h-full bg-blue-500 transition-all duration-1000 ease-out"
                       style={{ width: `${(creditFactors.paymentHistory / 850) * 100}%` }}
                     />
                   </div>
@@ -437,7 +509,7 @@ export const CreditScore = () => {
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-green-500 transition-all duration-300"
+                      className="h-full bg-green-500 transition-all duration-1000 ease-out"
                       style={{ width: `${(creditFactors.debtUtilization / 850) * 100}%` }}
                     />
                   </div>
@@ -450,7 +522,7 @@ export const CreditScore = () => {
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-yellow-500 transition-all duration-300"
+                      className="h-full bg-yellow-500 transition-all duration-1000 ease-out"
                       style={{ width: `${(creditFactors.creditAge / 850) * 100}%` }}
                     />
                   </div>
@@ -463,7 +535,7 @@ export const CreditScore = () => {
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-purple-500 transition-all duration-300"
+                      className="h-full bg-purple-500 transition-all duration-1000 ease-out"
                       style={{ width: `${(creditFactors.creditMix / 850) * 100}%` }}
                     />
                   </div>
@@ -476,7 +548,7 @@ export const CreditScore = () => {
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-red-500 transition-all duration-300"
+                      className="h-full bg-red-500 transition-all duration-1000 ease-out"
                       style={{ width: `${(creditFactors.recentInquiries / 850) * 100}%` }}
                     />
                   </div>
